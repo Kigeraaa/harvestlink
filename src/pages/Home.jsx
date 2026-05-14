@@ -1,10 +1,26 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import PageShell from "../components/layout/PageShell";
 import ProductCard from "../components/cards/ProductCard";
-import { categories, products, stats } from "../data/mockData";
+import { categories, products as mockProducts, stats } from "../data/mockData";
+import { apiGet, mapProduct } from "../lib/api";
 import { ArrowRight, BadgeCheck, Globe2, LockKeyhole, ShieldCheck } from "lucide-react";
 
 export default function Home() {
+  const [products, setProducts] = useState(mockProducts);
+
+  useEffect(() => {
+    async function load() {
+      try {
+        const [apiProducts, companies] = await Promise.all([apiGet('/products'), apiGet('/companies')]);
+        if (apiProducts) setProducts(apiProducts.map((p) => mapProduct(p, companies)));
+      } catch {
+        // fallback stays
+      }
+    }
+    load();
+  }, []);
+
   return (
     <PageShell>
       <section className="bg-grid relative overflow-hidden bg-harvest-cream">
@@ -29,7 +45,7 @@ export default function Home() {
                 [LockKeyhole, "Secure Trading"],
                 [ShieldCheck, "Quality Assured"],
               ].map(([Icon, label]) => (
-                <div key={label} className="flex items-center gap-2 font-semibold text-gray-700"><Icon className="text-harvest-leaf"/>{label}</div>
+                <div key={label} className="flex items-center gap-2 font-semibold text-gray-700"><Icon className="text-harvest-leaf" />{label}</div>
               ))}
             </div>
           </div>
@@ -66,7 +82,7 @@ export default function Home() {
             <div>
               <h2 className="text-4xl font-black text-harvest-green">Find the Right Suppliers Faster with <span className="text-harvest-orange">RFQ</span></h2>
               <p className="mt-4 text-gray-600">Post your requirements and receive competitive quotes from verified agricultural suppliers worldwide.</p>
-              <Link to="/create-rfq" className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-harvest-green px-6 py-3 font-bold text-white">Create an RFQ <ArrowRight size={18}/></Link>
+              <Link to="/create-rfq" className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-harvest-green px-6 py-3 font-bold text-white">Create an RFQ <ArrowRight size={18} /></Link>
             </div>
             <img className="rounded-3xl" src="https://images.unsplash.com/photo-1494412574643-ff11b0a5c1c3?auto=format&fit=crop&w=1000&q=80" alt="Shipping port" />
           </div>
@@ -82,7 +98,7 @@ export default function Home() {
           <Link to="/products" className="font-bold text-harvest-leaf">View all</Link>
         </div>
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {products.slice(0,6).map(p => <ProductCard key={p.id} product={p}/>)}
+          {products.slice(0, 6).map(p => <ProductCard key={p.id} product={p} />)}
         </div>
       </section>
     </PageShell>

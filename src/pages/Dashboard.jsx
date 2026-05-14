@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import PageShell from "../components/layout/PageShell";
 import { products as fallbackProducts, rfqs as fallbackRFQs } from "../data/mockData";
-import { apiGet, mapProduct, mapRFQ } from "../lib/api";
+import { apiGet, mapProduct, mapRFQ, getRole } from "../lib/api";
 import { BadgeDollarSign, Handshake, LockKeyhole, PackageCheck } from "lucide-react";
 
-export default function Dashboard({ role = "buyer" }) {
+export default function Dashboard() {
+  const role = getRole() || "exporter";
   const isBuyer = role === "buyer";
   const [products, setProducts] = useState(fallbackProducts);
   const [rfqs, setRfqs] = useState(fallbackRFQs);
@@ -21,12 +22,12 @@ export default function Dashboard({ role = "buyer" }) {
           apiGet('/admin/overview'),
           apiGet('/financing/eligibility/1'),
         ]);
-        setProducts(apiProducts.map((p) => mapProduct(p, companies)));
-        setRfqs(apiRfqs.map(mapRFQ));
-        setOverview(adminOverview);
-        setEligibility(finance);
+        if (apiProducts) setProducts(apiProducts.map((p) => mapProduct(p, companies)));
+        if (apiRfqs) setRfqs(apiRfqs.map(mapRFQ));
+        if (adminOverview) setOverview(adminOverview);
+        if (finance) setEligibility(finance);
       } catch (error) {
-        console.warn('Using fallback dashboard data because API is unavailable:', error.message);
+        console.warn('Using fallback dashboard data:', error.message);
       }
     }
     load();
@@ -44,12 +45,16 @@ export default function Dashboard({ role = "buyer" }) {
     ["Capital Requests", "2", BadgeDollarSign],
   ];
 
+  const dashboardTitle = role === "admin" ? "Admin Dashboard"
+    : role === "buyer" ? "Buyer Dashboard"
+    : "Supplier Dashboard";
+
   return (
     <PageShell>
       <main className="mx-auto max-w-7xl px-4 py-10 lg:px-6">
         <div className="rounded-[2rem] bg-harvest-green p-8 text-white shadow-soft">
           <div className="inline-flex rounded-full bg-white/10 px-4 py-2 text-sm font-bold">Trade Execution Dashboard</div>
-          <h1 className="mt-4 text-4xl font-black">{isBuyer ? "Buyer Dashboard" : role === "supplier" ? "Supplier Dashboard" : "Admin Dashboard"}</h1>
+          <h1 className="mt-4 text-4xl font-black">{dashboardTitle}</h1>
           <p className="mt-2 max-w-3xl text-white/80">Manage marketplace activity, RFQs, deal rooms, escrow payments, and working capital eligibility.</p>
         </div>
 
@@ -67,7 +72,12 @@ export default function Dashboard({ role = "buyer" }) {
           <section className="rounded-3xl bg-white p-6 shadow-sm lg:col-span-2">
             <h2 className="text-xl font-black text-harvest-green">{isBuyer ? "Recent RFQs" : "RFQ Opportunities"}</h2>
             <div className="mt-5 space-y-4">
-              {rfqs.slice(0, 4).map(r => <div key={r.id} className="rounded-2xl bg-harvest-soft p-4"><b>{r.product}</b><div className="text-sm text-gray-600">{r.quantity} • {r.location} • {r.status}</div></div>)}
+              {rfqs.slice(0, 4).map(r => (
+                <div key={r.id} className="rounded-2xl bg-harvest-soft p-4">
+                  <b>{r.product}</b>
+                  <div className="text-sm text-gray-600">{r.quantity} • {r.location} • {r.status}</div>
+                </div>
+              ))}
             </div>
           </section>
           <section className="rounded-3xl bg-white p-6 shadow-sm">
@@ -84,7 +94,12 @@ export default function Dashboard({ role = "buyer" }) {
         <section className="mt-8 rounded-3xl bg-white p-6 shadow-sm">
           <h2 className="text-xl font-black text-harvest-green">Featured Listings</h2>
           <div className="mt-5 grid gap-4 md:grid-cols-3">
-            {products.slice(0,3).map(p => <div key={p.id} className="flex items-center gap-4 rounded-2xl bg-harvest-soft p-4"><img alt={p.name} src={p.image} className="h-14 w-14 rounded-xl object-cover"/><div><b>{p.name}</b><div className="text-sm text-gray-600">{p.country} • {p.price}</div></div></div>)}
+            {products.slice(0, 3).map(p => (
+              <div key={p.id} className="flex items-center gap-4 rounded-2xl bg-harvest-soft p-4">
+                <img alt={p.name} src={p.image} className="h-14 w-14 rounded-xl object-cover" />
+                <div><b>{p.name}</b><div className="text-sm text-gray-600">{p.country} • {p.price}</div></div>
+              </div>
+            ))}
           </div>
         </section>
       </main>

@@ -1,7 +1,15 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
 
+function authHeaders() {
+  const token = localStorage.getItem('harvestlink_token');
+  return token ? { 'Authorization': `Bearer ${token}` } : {};
+}
+
 export async function apiGet(path) {
-  const res = await fetch(`${API_BASE_URL}${path}`);
+  const res = await fetch(`${API_BASE_URL}${path}`, {
+    headers: { ...authHeaders() },
+  });
+  if (res.status === 401) { logout(); return; }
   if (!res.ok) throw new Error(`API error ${res.status} on ${path}`);
   return res.json();
 }
@@ -9,9 +17,10 @@ export async function apiGet(path) {
 export async function apiPost(path, body) {
   const res = await fetch(`${API_BASE_URL}${path}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
     body: JSON.stringify(body),
   });
+  if (res.status === 401) { logout(); return; }
   if (!res.ok) throw new Error(`API error ${res.status} on ${path}`);
   return res.json();
 }
@@ -22,6 +31,29 @@ export async function login(email, password) {
   localStorage.setItem('harvestlink_role', data.role);
   localStorage.setItem('harvestlink_user_id', data.user_id);
   return data;
+}
+
+export async function register(email, password, fullName, role) {
+  const data = await apiPost('/auth/register', { email, password, full_name: fullName, role });
+  localStorage.setItem('harvestlink_token', data.access_token);
+  localStorage.setItem('harvestlink_role', data.role);
+  localStorage.setItem('harvestlink_user_id', data.user_id);
+  return data;
+}
+
+export function logout() {
+  localStorage.removeItem('harvestlink_token');
+  localStorage.removeItem('harvestlink_role');
+  localStorage.removeItem('harvestlink_user_id');
+  window.location.href = '/login';
+}
+
+export function getRole() {
+  return localStorage.getItem('harvestlink_role');
+}
+
+export function isLoggedIn() {
+  return !!localStorage.getItem('harvestlink_token');
 }
 
 export function imageForProduct(product) {
@@ -39,7 +71,6 @@ export function mapProduct(apiProduct, companies = []) {
   const price = apiProduct.price_min && apiProduct.price_max
     ? `$${apiProduct.price_min} - $${apiProduct.price_max} / ${apiProduct.unit}`
     : 'Custom quote';
-
   return {
     id: String(apiProduct.id),
     name: apiProduct.name,

@@ -5,20 +5,30 @@ import { BadgeDollarSign, BarChart3, CheckCircle2, ShieldCheck } from "lucide-re
 
 export default function Financing() {
   const [requests, setRequests] = useState([]);
+  const [companies, setCompanies] = useState([]);
   const [eligibility, setEligibility] = useState({ financing_eligible_amount: 20000, trade_score: 78, total_trade_value: 85000, total_deals: 8 });
 
   useEffect(() => {
     async function load() {
       try {
-        const [financeRequests, score] = await Promise.all([apiGet('/financing'), apiGet('/financing/eligibility/1')]);
-        setRequests(financeRequests);
-        setEligibility(score);
+        const [financeRequests, score, allCompanies] = await Promise.all([
+          apiGet('/financing'),
+          apiGet('/financing/eligibility/1'),
+          apiGet('/companies'),
+        ]);
+        if (financeRequests) setRequests(financeRequests);
+        if (score) setEligibility(score);
+        if (allCompanies) setCompanies(allCompanies);
       } catch (error) {
-        console.warn('Using fallback financing data because API is unavailable:', error.message);
+        console.warn('Using fallback financing data:', error.message);
       }
     }
     load();
   }, []);
+
+  function getCompanyName(id) {
+    return companies.find(c => c.id === id)?.name || `Company #${id}`;
+  }
 
   return (
     <PageShell>
@@ -44,17 +54,31 @@ export default function Financing() {
             ["Total deals", eligibility.total_deals, CheckCircle2],
             ["Trade score", eligibility.trade_score, BarChart3],
             ["Risk layer", "Data-backed", ShieldCheck],
-          ].map(([label, value, Icon]) => <div key={label} className="rounded-3xl bg-white p-6 shadow-sm"><Icon className="text-harvest-orange"/><div className="mt-3 text-3xl font-black text-harvest-green">{value}</div><div className="text-sm text-gray-500">{label}</div></div>)}
+          ].map(([label, value, Icon]) => (
+            <div key={label} className="rounded-3xl bg-white p-6 shadow-sm">
+              <Icon className="text-harvest-orange" />
+              <div className="mt-3 text-3xl font-black text-harvest-green">{value}</div>
+              <div className="text-sm text-gray-500">{label}</div>
+            </div>
+          ))}
         </div>
 
         <section className="mt-8 rounded-3xl bg-white p-6 shadow-sm">
           <h2 className="text-2xl font-black text-harvest-green">Financing Requests</h2>
           <div className="mt-5 overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead className="text-gray-500"><tr><th className="p-3">Exporter</th><th className="p-3">Requested</th><th className="p-3">Eligible</th><th className="p-3">Score</th><th className="p-3">Status</th></tr></thead>
+              <thead className="text-gray-500">
+                <tr><th className="p-3">Exporter</th><th className="p-3">Requested</th><th className="p-3">Eligible</th><th className="p-3">Score</th><th className="p-3">Status</th></tr>
+              </thead>
               <tbody>
-                {(requests.length ? requests : [{id: 1, exporter_company_id: 1, requested_amount: 20000, eligible_amount: 8600, score: 78, status: 'under_review'}]).map((r) => (
-                  <tr key={r.id} className="border-t"><td className="p-3">Company #{r.exporter_company_id}</td><td className="p-3">${r.requested_amount?.toLocaleString?.()}</td><td className="p-3">${r.eligible_amount?.toLocaleString?.()}</td><td className="p-3">{r.score}</td><td className="p-3"><span className="rounded-full bg-green-100 px-3 py-1 text-xs font-bold text-green-700">{r.status}</span></td></tr>
+                {(requests.length ? requests : [{ id: 1, exporter_company_id: 1, requested_amount: 20000, eligible_amount: 8600, score: 78, status: 'under_review' }]).map((r) => (
+                  <tr key={r.id} className="border-t">
+                    <td className="p-3 font-medium">{getCompanyName(r.exporter_company_id)}</td>
+                    <td className="p-3">${r.requested_amount?.toLocaleString?.()}</td>
+                    <td className="p-3">${r.eligible_amount?.toLocaleString?.()}</td>
+                    <td className="p-3">{r.score}</td>
+                    <td className="p-3"><span className="rounded-full bg-green-100 px-3 py-1 text-xs font-bold text-green-700">{r.status}</span></td>
+                  </tr>
                 ))}
               </tbody>
             </table>
