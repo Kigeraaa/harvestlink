@@ -14,7 +14,7 @@ export default function Auth({ mode = "login" }) {
   async function handleSubmit(e) {
     e.preventDefault();
     if (!isLogin) {
-      setMessage('Registration UI is ready. Connect POST /auth/register for live signup.');
+      setMessage('Registration is ready. Connect POST /auth/register for live signup.');
       return;
     }
     try {
