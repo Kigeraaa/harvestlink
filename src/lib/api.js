@@ -1,4 +1,4 @@
-const API_BASE_URL = 'https://harvestlink-backend-production.up.railway.app/api/v1';
+const API_BASE_URL = 'https://harvestlink-backend-production-a14f.up.railway.app/api/v1';
 
 function authHeaders() {
   const token = localStorage.getItem('harvestlink_token');
